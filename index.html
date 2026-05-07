@@ -150,34 +150,16 @@ textarea{resize:vertical;line-height:1.5}
 
     <div id="panelAI" style="display:none">
       <div class="card">
-        <div class="sh">Datos de la llamada <span class="aib">IA evalúa automáticamente</span></div>
-        <div class="fr fr3">
-          <div><label>Fecha</label><input type="date" id="ai_fecha"></div>
-          <div><label>Asesor</label><input type="text" id="ai_asesor" placeholder="Nombre completo"></div>
-          <div><label>Tipo de gestión</label>
-            <select id="tipoAI">
-              <option value="">Seleccionar...</option>
-              <option value="Suscripción">Suscripción (mora mensual)</option>
-              <option value="Cuotas-Graddual">Cuotas / Graddual</option>
-            </select>
-          </div>
+        <div class="sh">Archivo de TurboScribe <span class="aib">IA extrae todo</span></div>
+        <div class="hint">
+          <strong>Formato del nombre del archivo:</strong><br>
+          <code>teléfono_IDSalesforce_NombreAsesor_fecha.csv</code><br>
+          Ejemplo: <code>573176592413_0001qertw23_Catalina Linares_23-10-25.csv</code>
         </div>
-        <div class="fr">
-          <div><label>Nombre del cliente / estudiante</label><input type="text" id="ai_cliente" placeholder="Nombre completo"></div>
-          <div><label>Teléfono</label><input type="text" id="ai_tel" placeholder="573..."></div>
-        </div>
-        <div class="fr">
-          <div><label>ID Salesforce</label><input type="text" id="ai_sf" placeholder="0001qertw23"></div>
-          <div><label>Duración</label><input type="text" id="ai_dur" placeholder="5m 22s"></div>
-        </div>
-        <div class="fr1" style="margin-bottom:14px"><label>Link TurboScribe (referencia para el asesor)</label><input type="text" id="ai_lnk" placeholder="https://turboscribe.ai/..."></div>
-      </div>
-      <div class="card">
-        <div class="sh">Archivo de transcripción <span class="aib">CSV · TXT · PDF</span></div>
         <div class="uz" id="uz" onclick="document.getElementById('fi').click()" ondragover="onDrag(event,true)" ondragleave="onDrag(event,false)" ondrop="onDrop(event)">
           <div class="uz-icon">☁</div>
           <div class="uz-title">Arrastra o haz clic para seleccionar</div>
-          <div class="uz-sub">Exporta desde TurboScribe — cualquier nombre de archivo</div>
+          <div class="uz-sub">CSV · TXT · PDF de TurboScribe</div>
           <div class="fmt-row">
             <span class="fmt fc">CSV</span>
             <span class="fmt fp">PDF</span>
@@ -186,6 +168,18 @@ textarea{resize:vertical;line-height:1.5}
           <div class="fok" id="fok"></div>
         </div>
         <input type="file" id="fi" accept=".csv,.txt,.pdf" style="display:none" onchange="handleFile(event)">
+        <div class="ei" id="ei">
+          <div class="ei-t">Datos extraídos del nombre del archivo</div>
+          <div class="ei-g" id="eig"></div>
+        </div>
+        <div style="margin-top:14px">
+          <label>Tipo de gestión</label>
+          <select id="tipoAI">
+            <option value="">Seleccionar...</option>
+            <option value="Suscripción">Suscripción (mora mensual)</option>
+            <option value="Cuotas-Graddual">Cuotas / Graddual</option>
+          </select>
+        </div>
       </div>
       <div class="brow"><button class="btn primary" onclick="startAI()">Analizar con IA →</button></div>
     </div>
@@ -292,15 +286,11 @@ textarea{resize:vertical;line-height:1.5}
       <div style="margin-top:14px"><div class="fbl">Muletillas</div><div class="fb-text" id="r-mul"></div></div>
     </div>
     <div class="card">
-      <div class="sh">Google Sheets</div>
-      <div id="saveStatus" style="font-size:13px;color:#666;margin-bottom:12px">Listo para guardar.</div>
+      <div class="sh">Guardar en Google Sheets</div>
+      <div id="saveStatus" style="font-size:13px;color:#666;margin-bottom:12px">Listo para guardar esta evaluación.</div>
       <div id="saveOK" style="display:none" class="ok-box">
         <div class="ok-t">✓ Evaluación guardada correctamente</div>
         <div class="ok-s" id="saveOKMsg"></div>
-      </div>
-      <div id="autoSaveOK" style="display:none" class="ok-box">
-        <div class="ok-t">✓ Guardado automáticamente al analizar</div>
-        <div class="ok-s" id="autoSaveMsg"></div>
       </div>
       <div class="err-box" id="saveErr"></div>
     </div>
@@ -315,7 +305,7 @@ textarea{resize:vertical;line-height:1.5}
 <script>
 const SCRIPT_URL='https://script.google.com/macros/s/AKfycbzlO7FUuIeNqvTnqbImib3GrlUhTi-_yOTHiJhBinAayMlU1pjfbVQgutsbBwfcWf_kWg/exec';
 
-let mode='',parsedText='',aiData=null,savedRow=null,savedScore=null,savedResultado=null;
+let mode='',parsedText='',aiData=null;
 let meta={telefono:'',idSF:'',asesor:'',fecha:'',cliente:'',tipo:'',duracion:'',link:''};
 let ev={};
 
@@ -390,6 +380,17 @@ function procFile(file){
   const fok=document.getElementById('fok');
   const ext=file.name.split('.').pop().toLowerCase();
   if(!['csv','txt','pdf'].includes(ext)){alert('Usa CSV, TXT o PDF de TurboScribe');return;}
+  const extracted=parseFileName(file.name);
+  meta.telefono=extracted.telefono;
+  meta.idSF=extracted.idSF;
+  meta.asesor=extracted.asesor;
+  meta.fecha=extracted.fecha;
+  document.getElementById('eig').innerHTML=`
+    <div class="ei-i"><div class="ei-l">Teléfono</div><div class="ei-v">${meta.telefono||'—'}</div></div>
+    <div class="ei-i"><div class="ei-l">ID Salesforce</div><div class="ei-v">${meta.idSF||'—'}</div></div>
+    <div class="ei-i"><div class="ei-l">Asesor</div><div class="ei-v">${meta.asesor||'—'}</div></div>
+    <div class="ei-i"><div class="ei-l">Fecha</div><div class="ei-v">${meta.fecha||'—'}</div></div>`;
+  document.getElementById('ei').classList.add('show');
   fok.textContent='Leyendo '+file.name+'...';
   if(ext==='csv'){
     const r=new FileReader();
@@ -455,17 +456,9 @@ function animSteps(){
 }
 
 async function startAI(){
-  if(!document.getElementById('ai_asesor').value.trim()){alert('Ingresa el nombre del asesor');return;}
+  if(!parsedText||parsedText.length<30){alert('El archivo no tiene texto. Verifica el CSV de TurboScribe.');return;}
   if(!document.getElementById('tipoAI').value){alert('Selecciona el tipo de gestión');return;}
-  if(!parsedText||parsedText.length<30){alert('Sube el archivo de transcripción de TurboScribe');return;}
-  meta.asesor=document.getElementById('ai_asesor').value.trim();
-  meta.fecha=document.getElementById('ai_fecha').value;
-  meta.telefono=document.getElementById('ai_tel').value;
-  meta.idSF=document.getElementById('ai_sf').value;
-  meta.cliente=document.getElementById('ai_cliente').value;
   meta.tipo=document.getElementById('tipoAI').value;
-  meta.duracion=document.getElementById('ai_dur').value;
-  meta.link=document.getElementById('ai_lnk').value;
   showStep(2);
   animSteps();
   await runAI();
@@ -487,62 +480,25 @@ function startSup(){
   showStep(3);
 }
 
-function runAI(){
-  // Prepara payload con transcripción y datos
-  const payload={
-    transcripcion: parsedText.substring(0,7000),
-    tipo: meta.tipo,
-    fecha: meta.fecha,
-    asesor: meta.asesor,
-    cliente: meta.cliente,
-    telefono: meta.telefono,
-    idSF: meta.idSF,
-    duracion: meta.duracion,
-    link: meta.link,
-    observaciones: ''
-  };
-
-  const jsonStr = JSON.stringify(payload);
-  // Encode properly handling Spanish characters
-  const bytes = new TextEncoder().encode(jsonStr);
-  let binary = '';
-  bytes.forEach(b => binary += String.fromCharCode(b));
-  const b64 = btoa(binary);
-
-  const cbName = 'beemoAI_' + Date.now();
-  window[cbName] = function(d){
-    const el=document.getElementById('beemoAIScript');
-    if(el)el.remove();
-    delete window[cbName];
-
-    if(d && d.success){
-      aiData = d.analysis;
-      if(aiData.cliente_nombre) meta.cliente = aiData.cliente_nombre;
-      // Guardado automático ya hecho — mostrar resultado guardado
-      savedRow = d.row;
-      savedScore = d.score;
-      savedResultado = d.resultado;
-    } else {
-      console.error('AI error:', d ? d.error : 'sin respuesta');
-      aiData = null;
+async function runAI(){
+  try{
+    // Llama al Apps Script que internamente llama a Claude API
+    const url=SCRIPT_URL+'?action=analyze&tipo='+encodeURIComponent(meta.tipo)+'&transcripcion='+encodeURIComponent(parsedText.substring(0,7000));
+    const res=await fetch(url);
+    const d=await res.json();
+    if(d.success&&d.analysis){
+      aiData=d.analysis;
+      if(aiData.cliente_nombre)meta.cliente=aiData.cliente_nombre;
+    }else{
+      console.error('AI error:',d.error);
+      aiData=null;
     }
-    renderCrits(true);
-    showStep(3);
-  };
-
-  setTimeout(function(){
-    if(window[cbName]){
-      delete window[cbName];
-      aiData = null;
-      renderCrits(true);
-      showStep(3);
-    }
-  }, 60000);
-
-  const s = document.createElement('script');
-  s.id = 'beemoAIScript';
-  s.src = SCRIPT_URL + '?action=analyze_and_save&b64=' + encodeURIComponent(b64) + '&callback=' + cbName;
-  document.head.appendChild(s);
+  }catch(e){
+    console.error('Fetch error:',e);
+    aiData=null;
+  }
+  renderCrits(true);
+  showStep(3);
 }
 
 function buildBanner(id){
@@ -645,19 +601,10 @@ function goStep4(){
   const al=document.getElementById('alert').value;
   if(al){document.getElementById('r-alw').style.display='block';document.getElementById('r-al').textContent=al;}
   document.getElementById('r-mul').textContent=document.getElementById('mulTxt').textContent;
-
-  // Si es modo IA, ya está guardado automáticamente
-  if(mode==='ai' && savedRow){
-    document.getElementById('saveStatus').style.display='none';
-    document.getElementById('saveBtn').style.display='none';
-    document.getElementById('autoSaveOK').style.display='block';
-    document.getElementById('autoSaveMsg').textContent='Fila '+savedRow+' en Sheets — '+meta.asesor+' · '+savedScore+'%';
-  }
-
   showStep(4);
 }
 
-async function doSave(){
+function doSave(){
   const btn=document.getElementById('saveBtn');
   btn.disabled=true;btn.textContent='Guardando...';
   document.getElementById('saveStatus').textContent='Enviando a Google Sheets...';
@@ -678,42 +625,59 @@ async function doSave(){
     alertas:document.getElementById('alert').value,
     observaciones:document.getElementById('obs').value
   };
-  try{
-    const jsonStr=JSON.stringify(payload);
-    const bytes=new TextEncoder().encode(jsonStr);
-    let binary='';
-    bytes.forEach(b=>binary+=String.fromCharCode(b));
-    const b64=btoa(binary);
-    const url=SCRIPT_URL+'?action=save&b64='+encodeURIComponent(b64);
-    const r=await fetch(url);
-    const d=await r.json();
-    if(d.success){
+
+  // Usamos script tag en lugar de fetch para evitar CORS
+  const jsonStr = JSON.stringify(payload);
+  const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+  const url = SCRIPT_URL + '?action=save&b64=' + encodeURIComponent(b64);
+
+  // Callback global que el script llama al terminar
+  const cbName = 'beemoCallback_' + Date.now();
+  window[cbName] = function(d){
+    // Limpia el script tag
+    const el = document.getElementById('beemoScript');
+    if(el) el.remove();
+    delete window[cbName];
+
+    if(d && d.success){
       document.getElementById('saveStatus').style.display='none';
       document.getElementById('saveOK').style.display='block';
       document.getElementById('saveOKMsg').textContent='Fila '+d.row+' guardada — '+meta.asesor+' · '+score+'%';
       btn.textContent='Guardado ✓';
-    }else{
-      throw d.error||'Error desconocido';
+    } else {
+      document.getElementById('saveErr').style.display='block';
+      document.getElementById('saveErr').textContent='Error al guardar: '+(d?d.error:'Sin respuesta');
+      btn.disabled=false;btn.textContent='Reintentar';
     }
-  }catch(err){
-    document.getElementById('saveErr').style.display='block';
-    document.getElementById('saveErr').textContent='Error: '+err;
-    btn.disabled=false;btn.textContent='Reintentar';
-  }
+  };
+
+  // Timeout por si el script no responde
+  setTimeout(function(){
+    if(window[cbName]){
+      delete window[cbName];
+      document.getElementById('saveErr').style.display='block';
+      document.getElementById('saveErr').textContent='Tiempo de espera agotado. Intenta de nuevo.';
+      btn.disabled=false;btn.textContent='Reintentar';
+    }
+  }, 15000);
+
+  // Inyecta script tag — no tiene restricción CORS
+  const s = document.createElement('script');
+  s.id = 'beemoScript';
+  s.src = url + '&callback=' + cbName;
+  document.head.appendChild(s);
 }
 
 function reset(){
-  mode='';parsedText='';aiData=null;ev={};savedRow=null;savedScore=null;savedResultado=null;
+  mode='';parsedText='';aiData=null;ev={};
   meta={telefono:'',idSF:'',asesor:'',fecha:'',cliente:'',tipo:'',duracion:'',link:''};
   ['modeAI','modeSup'].forEach(id=>document.getElementById(id).classList.remove('sel'));
   ['panelAI','panelSup'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('uz').classList.remove('done');
   document.getElementById('fok').textContent='';
+  document.getElementById('ei').classList.remove('show');
   document.getElementById('fi').value='';
   document.getElementById('tipoAI').value='';
-  ['ai_asesor','ai_fecha','ai_tel','ai_sf','ai_cliente','ai_dur','ai_lnk'].forEach(id=>{
-    const el=document.getElementById(id);if(el)el.value='';
-  });
   document.getElementById('cwarn').classList.remove('show');
   document.getElementById('aiWarn').style.display='none';
   document.getElementById('saveOK').style.display='none';
