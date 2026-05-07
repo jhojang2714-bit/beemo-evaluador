@@ -604,7 +604,7 @@ function goStep4(){
   showStep(4);
 }
 
-async function doSave(){
+function doSave(){
   const btn=document.getElementById('saveBtn');
   btn.disabled=true;btn.textContent='Guardando...';
   document.getElementById('saveStatus').textContent='Enviando a Google Sheets...';
@@ -625,27 +625,47 @@ async function doSave(){
     alertas:document.getElementById('alert').value,
     observaciones:document.getElementById('obs').value
   };
-  try{
-    // POST evita el límite de URL y problemas con caracteres especiales
-    const r=await fetch(SCRIPT_URL, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload)
-    });
-    const d=await r.json();
-    if(d.success){
+
+  // Usamos script tag en lugar de fetch para evitar CORS
+  const jsonStr = JSON.stringify(payload);
+  const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+  const url = SCRIPT_URL + '?action=save&b64=' + encodeURIComponent(b64);
+
+  // Callback global que el script llama al terminar
+  const cbName = 'beemoCallback_' + Date.now();
+  window[cbName] = function(d){
+    // Limpia el script tag
+    const el = document.getElementById('beemoScript');
+    if(el) el.remove();
+    delete window[cbName];
+
+    if(d && d.success){
       document.getElementById('saveStatus').style.display='none';
       document.getElementById('saveOK').style.display='block';
       document.getElementById('saveOKMsg').textContent='Fila '+d.row+' guardada — '+meta.asesor+' · '+score+'%';
       btn.textContent='Guardado ✓';
-    }else{
-      throw d.error||'Error desconocido';
+    } else {
+      document.getElementById('saveErr').style.display='block';
+      document.getElementById('saveErr').textContent='Error al guardar: '+(d?d.error:'Sin respuesta');
+      btn.disabled=false;btn.textContent='Reintentar';
     }
-  }catch(err){
-    document.getElementById('saveErr').style.display='block';
-    document.getElementById('saveErr').textContent='Error al guardar: '+err;
-    btn.disabled=false;btn.textContent='Reintentar';
-  }
+  };
+
+  // Timeout por si el script no responde
+  setTimeout(function(){
+    if(window[cbName]){
+      delete window[cbName];
+      document.getElementById('saveErr').style.display='block';
+      document.getElementById('saveErr').textContent='Tiempo de espera agotado. Intenta de nuevo.';
+      btn.disabled=false;btn.textContent='Reintentar';
+    }
+  }, 15000);
+
+  // Inyecta script tag — no tiene restricción CORS
+  const s = document.createElement('script');
+  s.id = 'beemoScript';
+  s.src = url + '&callback=' + cbName;
+  document.head.appendChild(s);
 }
 
 function reset(){
