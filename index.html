@@ -37,8 +37,6 @@ textarea{resize:vertical;line-height:1.5}
 .mi{font-size:32px;margin-bottom:8px}
 .mt{font-size:15px;font-weight:600;color:#1a1a1a}
 .md{font-size:13px;color:#666;margin-top:4px;line-height:1.4}
-.hint{background:#f0f7ff;border:1px solid #b5d4f4;border-radius:8px;padding:12px 14px;font-size:12px;color:#185FA5;margin-bottom:14px;line-height:1.6}
-.hint code{background:#dceefa;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:11px}
 .uz{border:2px dashed #ddd;border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:#fafaf8}
 .uz:hover,.uz.drag{border-color:#185FA5;background:#f0f7ff}
 .uz.done{border-color:#3B6D11;background:#f0f9e8;border-style:solid}
@@ -51,12 +49,6 @@ textarea{resize:vertical;line-height:1.5}
 .fp{background:#fde8cc;color:#854F0B}
 .ft{background:#d8f0c0;color:#3B6D11}
 .fok{margin-top:10px;font-size:13px;color:#3B6D11;font-weight:500}
-.ei{background:#f5f5f3;border-radius:8px;padding:12px 14px;margin-top:12px;display:none}
-.ei.show{display:block}
-.ei-t{font-size:11px;font-weight:600;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
-.ei-g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.ei-i .ei-l{font-size:11px;color:#888}
-.ei-i .ei-v{font-size:13px;font-weight:500;color:#1a1a1a;margin-top:1px}
 .aib{display:inline-flex;align-items:center;background:#dceefa;color:#185FA5;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
 .sub{display:inline-flex;align-items:center;background:#fde8cc;color:#854F0B;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
 .analyzing{text-align:center;padding:40px 20px}
@@ -114,14 +106,12 @@ textarea{resize:vertical;line-height:1.5}
 </style>
 </head>
 <body>
-
 <div class="topbar">
   <div>
     <div class="topbar-logo">Beemo</div>
     <div class="topbar-sub">Evaluador de Calidad — Cobros</div>
   </div>
 </div>
-
 <div class="container">
   <div class="pbar">
     <div class="ps active" id="ps1"></div>
@@ -138,7 +128,7 @@ textarea{resize:vertical;line-height:1.5}
         <div class="mc" id="modeAI" onclick="selMode('ai')">
           <div class="mi">🤖</div>
           <div class="mt">Evaluación por IA</div>
-          <div class="md">Sube el archivo de TurboScribe. La IA extrae todo y evalúa automáticamente.</div>
+          <div class="md">Sube el archivo de TurboScribe. La IA evalúa automáticamente.</div>
         </div>
         <div class="mc" id="modeSup" onclick="selMode('supervisor')">
           <div class="mi">👤</div>
@@ -148,18 +138,36 @@ textarea{resize:vertical;line-height:1.5}
       </div>
     </div>
 
+    <!-- PANEL IA: formulario de datos + subida de archivo -->
     <div id="panelAI" style="display:none">
       <div class="card">
-        <div class="sh">Archivo de TurboScribe <span class="aib">IA extrae todo</span></div>
-        <div class="hint">
-          <strong>Formato del nombre del archivo:</strong><br>
-          <code>teléfono_IDSalesforce_NombreAsesor_fecha.csv</code><br>
-          Ejemplo: <code>573176592413_0001qertw23_Catalina Linares_23-10-25.csv</code>
+        <div class="sh">Datos de la llamada <span class="aib">IA evalúa automáticamente</span></div>
+        <div class="fr fr3">
+          <div><label>Fecha</label><input type="date" id="ai_fecha"></div>
+          <div><label>Asesor</label><input type="text" id="ai_asesor" placeholder="Nombre completo"></div>
+          <div><label>Tipo de gestión</label>
+            <select id="tipoAI">
+              <option value="">Seleccionar...</option>
+              <option value="Suscripción">Suscripción (mora mensual)</option>
+              <option value="Cuotas-Graddual">Cuotas / Graddual</option>
+            </select>
+          </div>
         </div>
+        <div class="fr">
+          <div><label>Nombre del cliente / estudiante</label><input type="text" id="ai_cliente" placeholder="Nombre completo"></div>
+          <div><label>Teléfono</label><input type="text" id="ai_tel" placeholder="573..."></div>
+        </div>
+        <div class="fr">
+          <div><label>ID Salesforce</label><input type="text" id="ai_sf" placeholder="0001qertw23"></div>
+          <div><label>Duración</label><input type="text" id="ai_dur" placeholder="5m 22s"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sh">Transcripción de TurboScribe <span class="aib">CSV · TXT · PDF</span></div>
         <div class="uz" id="uz" onclick="document.getElementById('fi').click()" ondragover="onDrag(event,true)" ondragleave="onDrag(event,false)" ondrop="onDrop(event)">
           <div class="uz-icon">☁</div>
           <div class="uz-title">Arrastra o haz clic para seleccionar</div>
-          <div class="uz-sub">CSV · TXT · PDF de TurboScribe</div>
+          <div class="uz-sub">Cualquier nombre de archivo — exporta directo de TurboScribe</div>
           <div class="fmt-row">
             <span class="fmt fc">CSV</span>
             <span class="fmt fp">PDF</span>
@@ -168,22 +176,11 @@ textarea{resize:vertical;line-height:1.5}
           <div class="fok" id="fok"></div>
         </div>
         <input type="file" id="fi" accept=".csv,.txt,.pdf" style="display:none" onchange="handleFile(event)">
-        <div class="ei" id="ei">
-          <div class="ei-t">Datos extraídos del nombre del archivo</div>
-          <div class="ei-g" id="eig"></div>
-        </div>
-        <div style="margin-top:14px">
-          <label>Tipo de gestión</label>
-          <select id="tipoAI">
-            <option value="">Seleccionar...</option>
-            <option value="Suscripción">Suscripción (mora mensual)</option>
-            <option value="Cuotas-Graddual">Cuotas / Graddual</option>
-          </select>
-        </div>
       </div>
       <div class="brow"><button class="btn primary" onclick="startAI()">Analizar con IA →</button></div>
     </div>
 
+    <!-- PANEL SUPERVISOR -->
     <div id="panelSup" style="display:none">
       <div class="card">
         <div class="sh">Datos de la llamada <span class="sub">Supervisor</span></div>
@@ -304,7 +301,6 @@ textarea{resize:vertical;line-height:1.5}
 
 <script>
 const SCRIPT_URL='https://script.google.com/macros/s/AKfycbzlO7FUuIeNqvTnqbImib3GrlUhTi-_yOTHiJhBinAayMlU1pjfbVQgutsbBwfcWf_kWg/exec';
-
 let mode='',parsedText='',aiData=null;
 let meta={telefono:'',idSF:'',asesor:'',fecha:'',cliente:'',tipo:'',duracion:'',link:''};
 let ev={};
@@ -360,37 +356,11 @@ function onDrag(e,on){e.preventDefault();document.getElementById('uz').classList
 function onDrop(e){e.preventDefault();document.getElementById('uz').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)procFile(f);}
 function handleFile(e){const f=e.target.files[0];if(f)procFile(f);}
 
-function parseFileName(name){
-  const base=name.replace(/\.(csv|pdf|txt)$/i,'');
-  const parts=base.split('_');
-  const r={telefono:'',idSF:'',asesor:'',fecha:''};
-  if(parts.length>=1)r.telefono=parts[0].trim();
-  if(parts.length>=2)r.idSF=parts[1].trim();
-  if(parts.length>=4){
-    r.fecha=parts[parts.length-1].trim();
-    r.asesor=parts.slice(2,parts.length-1).join(' ').trim();
-  }else if(parts.length===3){
-    r.asesor=parts[2].trim();
-  }
-  return r;
-}
-
 function procFile(file){
   const uz=document.getElementById('uz');
   const fok=document.getElementById('fok');
   const ext=file.name.split('.').pop().toLowerCase();
   if(!['csv','txt','pdf'].includes(ext)){alert('Usa CSV, TXT o PDF de TurboScribe');return;}
-  const extracted=parseFileName(file.name);
-  meta.telefono=extracted.telefono;
-  meta.idSF=extracted.idSF;
-  meta.asesor=extracted.asesor;
-  meta.fecha=extracted.fecha;
-  document.getElementById('eig').innerHTML=`
-    <div class="ei-i"><div class="ei-l">Teléfono</div><div class="ei-v">${meta.telefono||'—'}</div></div>
-    <div class="ei-i"><div class="ei-l">ID Salesforce</div><div class="ei-v">${meta.idSF||'—'}</div></div>
-    <div class="ei-i"><div class="ei-l">Asesor</div><div class="ei-v">${meta.asesor||'—'}</div></div>
-    <div class="ei-i"><div class="ei-l">Fecha</div><div class="ei-v">${meta.fecha||'—'}</div></div>`;
-  document.getElementById('ei').classList.add('show');
   fok.textContent='Leyendo '+file.name+'...';
   if(ext==='csv'){
     const r=new FileReader();
@@ -432,14 +402,8 @@ function procFile(file){
         lib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         const pdf=await lib.getDocument(new Uint8Array(ev.target.result)).promise;
         let txt='';
-        for(let i=1;i<=pdf.numPages;i++){
-          const pg=await pdf.getPage(i);
-          const ct=await pg.getTextContent();
-          txt+=ct.items.map(s=>s.str).join(' ')+'\n';
-        }
-        parsedText=txt;
-        fok.textContent='✓ '+file.name+' listo';
-        uz.classList.add('done');
+        for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const ct=await pg.getTextContent();txt+=ct.items.map(s=>s.str).join(' ')+'\n';}
+        parsedText=txt;fok.textContent='✓ '+file.name+' listo';uz.classList.add('done');
       }catch(e){fok.textContent='Error PDF. Intenta con CSV o TXT.';}
     };
     r.readAsArrayBuffer(file);
@@ -456,9 +420,17 @@ function animSteps(){
 }
 
 async function startAI(){
-  if(!parsedText||parsedText.length<30){alert('El archivo no tiene texto. Verifica el CSV de TurboScribe.');return;}
+  if(!document.getElementById('ai_asesor').value.trim()){alert('Ingresa el nombre del asesor');return;}
   if(!document.getElementById('tipoAI').value){alert('Selecciona el tipo de gestión');return;}
+  if(!parsedText||parsedText.length<30){alert('Sube el archivo de transcripción de TurboScribe');return;}
+  meta.asesor=document.getElementById('ai_asesor').value.trim();
+  meta.fecha=document.getElementById('ai_fecha').value;
+  meta.telefono=document.getElementById('ai_tel').value;
+  meta.idSF=document.getElementById('ai_sf').value;
+  meta.cliente=document.getElementById('ai_cliente').value;
   meta.tipo=document.getElementById('tipoAI').value;
+  meta.duracion=document.getElementById('ai_dur').value;
+  meta.link='';
   showStep(2);
   animSteps();
   await runAI();
@@ -482,7 +454,6 @@ function startSup(){
 
 async function runAI(){
   try{
-    // Llama al Apps Script que internamente llama a Claude API
     const url=SCRIPT_URL+'?action=analyze&tipo='+encodeURIComponent(meta.tipo)+'&transcripcion='+encodeURIComponent(parsedText.substring(0,7000));
     const res=await fetch(url);
     const d=await res.json();
@@ -511,9 +482,7 @@ function buildBanner(id){
 
 function renderCrits(withAI){
   buildBanner('ibn3');
-  if(withAI&&!aiData){
-    document.getElementById('aiWarn').style.display='block';
-  }
+  if(withAI&&!aiData){document.getElementById('aiWarn').style.display='block';}
   Object.entries(CRIT).forEach(([sec,items])=>{
     const cont=document.getElementById('sec-'+sec);
     cont.innerHTML='';
@@ -537,10 +506,7 @@ function renderCrits(withAI){
     });
   });
   if(withAI&&aiData){
-    if(aiData.promueve_cancelacion){
-      document.getElementById('cwarn').classList.add('show');
-      document.getElementById('cwarnD').textContent=aiData.cancelacion_evidencia||'El asesor promovió la baja del servicio.';
-    }
+    if(aiData.promueve_cancelacion){document.getElementById('cwarn').classList.add('show');document.getElementById('cwarnD').textContent=aiData.cancelacion_evidencia||'El asesor promovió la baja del servicio.';}
     const mul=aiData.muletillas;
     document.getElementById('mulTxt').textContent=mul&&mul.length>0?mul.join(', '):'No se detectaron muletillas repetitivas significativas.';
     document.getElementById('fort').value=aiData.fortalezas||'';
@@ -549,18 +515,11 @@ function renderCrits(withAI){
   }
 }
 
-function sel(id,val,el){
-  el.parentElement.querySelectorAll('.badge').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');
-  ev[id]=val;
-}
+function sel(id,val,el){el.parentElement.querySelectorAll('.badge').forEach(b=>b.classList.remove('active'));el.classList.add('active');ev[id]=val;}
 
 function calcScore(){
   let e=0,m=0;
-  Object.values(CRIT).flat().forEach(c=>{
-    if(ev[c.id]!=='NA'){m+=c.p;}
-    if(ev[c.id]==='SI'){e+=c.p;}
-  });
+  Object.values(CRIT).flat().forEach(c=>{if(ev[c.id]!=='NA'){m+=c.p;}if(ev[c.id]==='SI'){e+=c.p;}});
   return m>0?Math.round((e/m)*100):0;
 }
 
@@ -584,11 +543,7 @@ function goStep4(){
    {label:'Emocional',ids:['em1','em2','em3']},{label:'Herramientas',ids:['he1','he2','he3']}
   ].forEach(g=>{
     let e=0,m=0;
-    g.ids.forEach(id=>{
-      const c=Object.values(CRIT).flat().find(x=>x.id===id);
-      if(c&&ev[id]!=='NA'){m+=c.p;}
-      if(c&&ev[id]==='SI'){e+=c.p;}
-    });
+    g.ids.forEach(id=>{const c=Object.values(CRIT).flat().find(x=>x.id===id);if(c&&ev[id]!=='NA'){m+=c.p;}if(c&&ev[id]==='SI'){e+=c.p;}});
     const pct=m>0?Math.round((e/m)*100):0;
     const col=pct>=80?'#3B6D11':pct>=60?'#854F0B':'#A32D2D';
     const div=document.createElement('div');div.className='ri';
@@ -625,33 +580,25 @@ function doSave(){
     alertas:document.getElementById('alert').value,
     observaciones:document.getElementById('obs').value
   };
-
-  // Usamos script tag en lugar de fetch para evitar CORS
-  const jsonStr = JSON.stringify(payload);
-  const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
-  const url = SCRIPT_URL + '?action=save&b64=' + encodeURIComponent(b64);
-
-  // Callback global que el script llama al terminar
-  const cbName = 'beemoCallback_' + Date.now();
-  window[cbName] = function(d){
-    // Limpia el script tag
-    const el = document.getElementById('beemoScript');
-    if(el) el.remove();
+  const jsonStr=JSON.stringify(payload);
+  const b64=btoa(unescape(encodeURIComponent(jsonStr)));
+  const url=SCRIPT_URL+'?action=save&b64='+encodeURIComponent(b64);
+  const cbName='beemoCallback_'+Date.now();
+  window[cbName]=function(d){
+    const el=document.getElementById('beemoScript');
+    if(el)el.remove();
     delete window[cbName];
-
-    if(d && d.success){
+    if(d&&d.success){
       document.getElementById('saveStatus').style.display='none';
       document.getElementById('saveOK').style.display='block';
       document.getElementById('saveOKMsg').textContent='Fila '+d.row+' guardada — '+meta.asesor+' · '+score+'%';
       btn.textContent='Guardado ✓';
-    } else {
+    }else{
       document.getElementById('saveErr').style.display='block';
       document.getElementById('saveErr').textContent='Error al guardar: '+(d?d.error:'Sin respuesta');
       btn.disabled=false;btn.textContent='Reintentar';
     }
   };
-
-  // Timeout por si el script no responde
   setTimeout(function(){
     if(window[cbName]){
       delete window[cbName];
@@ -659,12 +606,10 @@ function doSave(){
       document.getElementById('saveErr').textContent='Tiempo de espera agotado. Intenta de nuevo.';
       btn.disabled=false;btn.textContent='Reintentar';
     }
-  }, 15000);
-
-  // Inyecta script tag — no tiene restricción CORS
-  const s = document.createElement('script');
-  s.id = 'beemoScript';
-  s.src = url + '&callback=' + cbName;
+  },15000);
+  const s=document.createElement('script');
+  s.id='beemoScript';
+  s.src=url+'&callback='+cbName;
   document.head.appendChild(s);
 }
 
@@ -675,9 +620,9 @@ function reset(){
   ['panelAI','panelSup'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('uz').classList.remove('done');
   document.getElementById('fok').textContent='';
-  document.getElementById('ei').classList.remove('show');
   document.getElementById('fi').value='';
   document.getElementById('tipoAI').value='';
+  ['ai_asesor','ai_fecha','ai_tel','ai_sf','ai_cliente','ai_dur'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('cwarn').classList.remove('show');
   document.getElementById('aiWarn').style.display='none';
   document.getElementById('saveOK').style.display='none';
