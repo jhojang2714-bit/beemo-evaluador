@@ -138,7 +138,7 @@ textarea{resize:vertical;line-height:1.5}
       </div>
     </div>
 
-    <!-- PANEL IA: formulario de datos + subida de archivo -->
+    <!-- PANEL IA -->
     <div id="panelAI" style="display:none">
       <div class="card">
         <div class="sh">Datos de la llamada <span class="aib">IA evalúa automáticamente</span></div>
@@ -452,24 +452,61 @@ function startSup(){
   showStep(3);
 }
 
+// ============================================================
+// runAI — usa JSONP (igual que doSave) para evitar CORS
+// ============================================================
 async function runAI(){
-  try{
-    const url=SCRIPT_URL+'?action=analyze&tipo='+encodeURIComponent(meta.tipo)+'&transcripcion='+encodeURIComponent(parsedText.substring(0,7000));
-    const res=await fetch(url);
-    const d=await res.json();
-    if(d.success&&d.analysis){
-      aiData=d.analysis;
-      if(aiData.cliente_nombre)meta.cliente=aiData.cliente_nombre;
-    }else{
-      console.error('AI error:',d.error);
+  return new Promise(function(resolve){
+    const cbName='beemoAI_'+Date.now();
+
+    // Timeout de seguridad: 20 segundos
+    const timeout=setTimeout(function(){
+      if(window[cbName]){
+        delete window[cbName];
+        const el=document.getElementById('beemoAIScript');
+        if(el)el.remove();
+        console.warn('runAI: timeout — sin respuesta del servidor');
+        aiData=null;
+        resolve();
+      }
+    },20000);
+
+    // Función callback que Apps Script invocará
+    window[cbName]=function(d){
+      clearTimeout(timeout);
+      const el=document.getElementById('beemoAIScript');
+      if(el)el.remove();
+      delete window[cbName];
+      if(d&&d.success&&d.analysis){
+        aiData=d.analysis;
+        if(aiData.cliente_nombre)meta.cliente=aiData.cliente_nombre;
+      }else{
+        console.error('runAI error:',(d?d.error:'Sin datos'));
+        aiData=null;
+      }
+      resolve();
+    };
+
+    // Construir URL con callback
+    const url=SCRIPT_URL
+      +'?action=analyze'
+      +'&tipo='+encodeURIComponent(meta.tipo)
+      +'&transcripcion='+encodeURIComponent(parsedText.substring(0,7000))
+      +'&callback='+cbName;
+
+    // Inyectar <script> — esto evita el bloqueo CORS
+    const s=document.createElement('script');
+    s.id='beemoAIScript';
+    s.src=url;
+    s.onerror=function(){
+      clearTimeout(timeout);
+      delete window[cbName];
+      console.error('runAI: error cargando script JSONP');
       aiData=null;
-    }
-  }catch(e){
-    console.error('Fetch error:',e);
-    aiData=null;
-  }
-  renderCrits(true);
-  showStep(3);
+      resolve();
+    };
+    document.head.appendChild(s);
+  });
 }
 
 function buildBanner(id){
