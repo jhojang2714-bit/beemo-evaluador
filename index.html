@@ -503,7 +503,11 @@ function runAI(){
   };
 
   const jsonStr = JSON.stringify(payload);
-  const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+  // Encode properly handling Spanish characters
+  const bytes = new TextEncoder().encode(jsonStr);
+  let binary = '';
+  bytes.forEach(b => binary += String.fromCharCode(b));
+  const b64 = btoa(binary);
 
   const cbName = 'beemoAI_' + Date.now();
   window[cbName] = function(d){
@@ -653,7 +657,7 @@ function goStep4(){
   showStep(4);
 }
 
-function doSave(){
+async function doSave(){
   const btn=document.getElementById('saveBtn');
   btn.disabled=true;btn.textContent='Guardando...';
   document.getElementById('saveStatus').textContent='Enviando a Google Sheets...';
@@ -674,51 +678,28 @@ function doSave(){
     alertas:document.getElementById('alert').value,
     observaciones:document.getElementById('obs').value
   };
-
-  // Usamos script tag en lugar de fetch para evitar CORS
-  const jsonStr = JSON.stringify(payload);
-  const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
-  const url = SCRIPT_URL + '?action=save&b64=' + encodeURIComponent(b64);
-
-  // Callback global que el script llama al terminar
-  const cbName = 'beemoCallback_' + Date.now();
-  window[cbName] = function(d){
-    // Limpia el script tag
-    const el = document.getElementById('beemoScript');
-    if(el) el.remove();
-    delete window[cbName];
-
-    if(d && d.success){
+  try{
+    const jsonStr=JSON.stringify(payload);
+    const bytes=new TextEncoder().encode(jsonStr);
+    let binary='';
+    bytes.forEach(b=>binary+=String.fromCharCode(b));
+    const b64=btoa(binary);
+    const url=SCRIPT_URL+'?action=save&b64='+encodeURIComponent(b64);
+    const r=await fetch(url);
+    const d=await r.json();
+    if(d.success){
       document.getElementById('saveStatus').style.display='none';
       document.getElementById('saveOK').style.display='block';
       document.getElementById('saveOKMsg').textContent='Fila '+d.row+' guardada — '+meta.asesor+' · '+score+'%';
       btn.textContent='Guardado ✓';
-    } else {
-      document.getElementById('saveErr').style.display='block';
-      document.getElementById('saveErr').textContent='Error al guardar: '+(d?d.error:'Sin respuesta');
-      btn.disabled=false;btn.textContent='Reintentar';
+    }else{
+      throw d.error||'Error desconocido';
     }
-  };
-
-  // Timeout - si no hay respuesta en 30s, asumimos que se guardó
-  setTimeout(function(){
-    if(window[cbName]){
-      delete window[cbName];
-      const el=document.getElementById('beemoScript');
-      if(el)el.remove();
-      // El dato probablemente se guardó — mostrar confirmación positiva
-      document.getElementById('saveStatus').style.display='none';
-      document.getElementById('saveOK').style.display='block';
-      document.getElementById('saveOKMsg').textContent='Evaluación enviada — verifica en tu Google Sheets que aparezca la fila de '+meta.asesor+'.';
-      btn.textContent='Enviado ✓';
-    }
-  }, 30000);
-
-  // Inyecta script tag — no tiene restricción CORS
-  const s = document.createElement('script');
-  s.id = 'beemoScript';
-  s.src = url + '&callback=' + cbName;
-  document.head.appendChild(s);
+  }catch(err){
+    document.getElementById('saveErr').style.display='block';
+    document.getElementById('saveErr').textContent='Error: '+err;
+    btn.disabled=false;btn.textContent='Reintentar';
+  }
 }
 
 function reset(){
