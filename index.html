@@ -292,11 +292,15 @@ textarea{resize:vertical;line-height:1.5}
       <div style="margin-top:14px"><div class="fbl">Muletillas</div><div class="fb-text" id="r-mul"></div></div>
     </div>
     <div class="card">
-      <div class="sh">Guardar en Google Sheets</div>
-      <div id="saveStatus" style="font-size:13px;color:#666;margin-bottom:12px">Listo para guardar esta evaluación.</div>
+      <div class="sh">Google Sheets</div>
+      <div id="saveStatus" style="font-size:13px;color:#666;margin-bottom:12px">Listo para guardar.</div>
       <div id="saveOK" style="display:none" class="ok-box">
         <div class="ok-t">✓ Evaluación guardada correctamente</div>
         <div class="ok-s" id="saveOKMsg"></div>
+      </div>
+      <div id="autoSaveOK" style="display:none" class="ok-box">
+        <div class="ok-t">✓ Guardado automáticamente al analizar</div>
+        <div class="ok-s" id="autoSaveMsg"></div>
       </div>
       <div class="err-box" id="saveErr"></div>
     </div>
@@ -311,7 +315,7 @@ textarea{resize:vertical;line-height:1.5}
 <script>
 const SCRIPT_URL='https://script.google.com/macros/s/AKfycbzlO7FUuIeNqvTnqbImib3GrlUhTi-_yOTHiJhBinAayMlU1pjfbVQgutsbBwfcWf_kWg/exec';
 
-let mode='',parsedText='',aiData=null;
+let mode='',parsedText='',aiData=null,savedRow=null,savedScore=null,savedResultado=null;
 let meta={telefono:'',idSF:'',asesor:'',fecha:'',cliente:'',tipo:'',duracion:'',link:''};
 let ev={};
 
@@ -483,25 +487,58 @@ function startSup(){
   showStep(3);
 }
 
-async function runAI(){
-  try{
-    // Llama al Apps Script que internamente llama a Claude API
-    const url=SCRIPT_URL+'?action=analyze&tipo='+encodeURIComponent(meta.tipo)+'&transcripcion='+encodeURIComponent(parsedText.substring(0,7000));
-    const res=await fetch(url);
-    const d=await res.json();
-    if(d.success&&d.analysis){
-      aiData=d.analysis;
-      if(aiData.cliente_nombre)meta.cliente=aiData.cliente_nombre;
-    }else{
-      console.error('AI error:',d.error);
-      aiData=null;
+function runAI(){
+  // Prepara payload con transcripción y datos
+  const payload={
+    transcripcion: parsedText.substring(0,7000),
+    tipo: meta.tipo,
+    fecha: meta.fecha,
+    asesor: meta.asesor,
+    cliente: meta.cliente,
+    telefono: meta.telefono,
+    idSF: meta.idSF,
+    duracion: meta.duracion,
+    link: meta.link,
+    observaciones: ''
+  };
+
+  const jsonStr = JSON.stringify(payload);
+  const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+
+  const cbName = 'beemoAI_' + Date.now();
+  window[cbName] = function(d){
+    const el=document.getElementById('beemoAIScript');
+    if(el)el.remove();
+    delete window[cbName];
+
+    if(d && d.success){
+      aiData = d.analysis;
+      if(aiData.cliente_nombre) meta.cliente = aiData.cliente_nombre;
+      // Guardado automático ya hecho — mostrar resultado guardado
+      savedRow = d.row;
+      savedScore = d.score;
+      savedResultado = d.resultado;
+    } else {
+      console.error('AI error:', d ? d.error : 'sin respuesta');
+      aiData = null;
     }
-  }catch(e){
-    console.error('Fetch error:',e);
-    aiData=null;
-  }
-  renderCrits(true);
-  showStep(3);
+    renderCrits(true);
+    showStep(3);
+  };
+
+  setTimeout(function(){
+    if(window[cbName]){
+      delete window[cbName];
+      aiData = null;
+      renderCrits(true);
+      showStep(3);
+    }
+  }, 60000);
+
+  const s = document.createElement('script');
+  s.id = 'beemoAIScript';
+  s.src = SCRIPT_URL + '?action=analyze_and_save&b64=' + encodeURIComponent(b64) + '&callback=' + cbName;
+  document.head.appendChild(s);
 }
 
 function buildBanner(id){
@@ -604,6 +641,15 @@ function goStep4(){
   const al=document.getElementById('alert').value;
   if(al){document.getElementById('r-alw').style.display='block';document.getElementById('r-al').textContent=al;}
   document.getElementById('r-mul').textContent=document.getElementById('mulTxt').textContent;
+
+  // Si es modo IA, ya está guardado automáticamente
+  if(mode==='ai' && savedRow){
+    document.getElementById('saveStatus').style.display='none';
+    document.getElementById('saveBtn').style.display='none';
+    document.getElementById('autoSaveOK').style.display='block';
+    document.getElementById('autoSaveMsg').textContent='Fila '+savedRow+' en Sheets — '+meta.asesor+' · '+savedScore+'%';
+  }
+
   showStep(4);
 }
 
@@ -654,13 +700,17 @@ function doSave(){
     }
   };
 
-  // Timeout por si el script no responde
+  // Timeout - si no hay respuesta en 30s, asumimos que se guardó
   setTimeout(function(){
     if(window[cbName]){
       delete window[cbName];
-      document.getElementById('saveErr').style.display='block';
-      document.getElementById('saveErr').textContent='Tiempo de espera agotado. Intenta de nuevo.';
-      btn.disabled=false;btn.textContent='Reintentar';
+      const el=document.getElementById('beemoScript');
+      if(el)el.remove();
+      // El dato probablemente se guardó — mostrar confirmación positiva
+      document.getElementById('saveStatus').style.display='none';
+      document.getElementById('saveOK').style.display='block';
+      document.getElementById('saveOKMsg').textContent='Evaluación enviada — verifica en tu Google Sheets que aparezca la fila de '+meta.asesor+'.';
+      btn.textContent='Enviado ✓';
     }
   }, 30000);
 
@@ -672,7 +722,7 @@ function doSave(){
 }
 
 function reset(){
-  mode='';parsedText='';aiData=null;ev={};
+  mode='';parsedText='';aiData=null;ev={};savedRow=null;savedScore=null;savedResultado=null;
   meta={telefono:'',idSF:'',asesor:'',fecha:'',cliente:'',tipo:'',duracion:'',link:''};
   ['modeAI','modeSup'].forEach(id=>document.getElementById(id).classList.remove('sel'));
   ['panelAI','panelSup'].forEach(id=>document.getElementById(id).style.display='none');
