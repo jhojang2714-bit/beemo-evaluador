@@ -662,7 +662,7 @@ function doSave(){
       document.getElementById('saveErr').textContent='Tiempo de espera agotado. Intenta de nuevo.';
       btn.disabled=false;btn.textContent='Reintentar';
     }
-  }, 15000);
+  }, 30000);
 
   // Inyecta script tag — no tiene restricción CORS
   const s = document.createElement('script');
