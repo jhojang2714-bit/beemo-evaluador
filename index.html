@@ -626,11 +626,12 @@ async function doSave(){
     observaciones:document.getElementById('obs').value
   };
   try{
-    const safeJson=JSON.stringify(payload).replace(/[\u007F-\uFFFF]/g,function(c){
-      return '\\u'+('0000'+c.charCodeAt(0).toString(16)).slice(-4);
+    // POST evita el límite de URL y problemas con caracteres especiales
+    const r=await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
     });
-    const url=SCRIPT_URL+'?action=save&data='+encodeURIComponent(safeJson);
-    const r=await fetch(url);
     const d=await r.json();
     if(d.success){
       document.getElementById('saveStatus').style.display='none';
