@@ -450,15 +450,29 @@ function startSup(){
   document.getElementById('fbBadge').textContent='Supervisor — completa el feedback';
   renderCrits(false);showStep(3);
 }
-async function runAI(){
-  try{
-    const url=SCRIPT_URL+'?action=analyze&tipo='+encodeURIComponent(meta.tipo)+'&transcripcion='+encodeURIComponent(parsedText.substring(0,7000));
-    const res=await fetch(url);
-    const d=await res.json();
-    if(d.success&&d.analysis){aiData=d.analysis;if(aiData.cliente_nombre)meta.cliente=aiData.cliente_nombre;}
-    else{console.error('AI error:',d.error);aiData=null;}
-  }catch(e){console.error('Fetch error:',e);aiData=null;}
-  renderCrits(true);showStep(3);
+function runAI(){
+  return new Promise(function(resolve){
+    const cbName='beemoAI_'+Date.now();
+    window[cbName]=function(d){
+      const el=document.getElementById('beemoAIScript');if(el)el.remove();
+      delete window[cbName];
+      if(d&&d.success&&d.analysis){aiData=d.analysis;if(aiData.cliente_nombre)meta.cliente=aiData.cliente_nombre;}
+      else{console.error('AI error:',d?d.error:'sin respuesta');aiData=null;}
+      renderCrits(true);showStep(3);
+      resolve();
+    };
+    setTimeout(function(){
+      if(window[cbName]){
+        delete window[cbName];
+        const el=document.getElementById('beemoAIScript');if(el)el.remove();
+        aiData=null;renderCrits(true);showStep(3);resolve();
+      }
+    },30000);
+    const s=document.createElement('script');
+    s.id='beemoAIScript';
+    s.src=SCRIPT_URL+'?action=analyze&tipo='+encodeURIComponent(meta.tipo)+'&transcripcion='+encodeURIComponent(parsedText.substring(0,7000))+'&callback='+cbName;
+    document.head.appendChild(s);
+  });
 }
 function buildBanner(id){
   document.getElementById(id).innerHTML=`
