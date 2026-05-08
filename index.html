@@ -37,6 +37,7 @@ textarea{resize:vertical;line-height:1.5}
 .mi{font-size:32px;margin-bottom:8px}
 .mt{font-size:15px;font-weight:600;color:#1a1a1a}
 .md{font-size:13px;color:#666;margin-top:4px;line-height:1.4}
+.five9-ref{background:#f0f7ff;border:1px solid #b5d4f4;border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:12px;color:#185FA5;line-height:1.8}
 .uz{border:2px dashed #ddd;border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:#fafaf8}
 .uz:hover,.uz.drag{border-color:#185FA5;background:#f0f7ff}
 .uz.done{border-color:#3B6D11;background:#f0f9e8;border-style:solid}
@@ -142,9 +143,17 @@ textarea{resize:vertical;line-height:1.5}
     <div id="panelAI" style="display:none">
       <div class="card">
         <div class="sh">Datos de la llamada <span class="aib">IA evalúa automáticamente</span></div>
+        <div class="five9-ref">
+          <strong>📋 Campos del reporte Five9:</strong>&nbsp;
+          Asesor → <strong>AGENT NAME</strong> &nbsp;·&nbsp;
+          Cliente → <strong>CUSTOMER NAME</strong> &nbsp;·&nbsp;
+          Teléfono → <strong>DNIS</strong> &nbsp;·&nbsp;
+          ID Salesforce → <strong>salesforce_id</strong> &nbsp;·&nbsp;
+          Duración → <strong>CALL TIME</strong>
+        </div>
         <div class="fr fr3">
           <div><label>Fecha</label><input type="date" id="ai_fecha"></div>
-          <div><label>Asesor</label><input type="text" id="ai_asesor" placeholder="Nombre completo"></div>
+          <div><label>Asesor</label><input type="text" id="ai_asesor" placeholder="AGENT NAME"></div>
           <div><label>Tipo de gestión</label>
             <select id="tipoAI">
               <option value="">Seleccionar...</option>
@@ -154,12 +163,12 @@ textarea{resize:vertical;line-height:1.5}
           </div>
         </div>
         <div class="fr">
-          <div><label>Nombre del cliente / estudiante</label><input type="text" id="ai_cliente" placeholder="Nombre completo"></div>
-          <div><label>Teléfono</label><input type="text" id="ai_tel" placeholder="573..."></div>
+          <div><label>Nombre del cliente / estudiante</label><input type="text" id="ai_cliente" placeholder="CUSTOMER NAME"></div>
+          <div><label>Teléfono</label><input type="text" id="ai_tel" placeholder="DNIS"></div>
         </div>
         <div class="fr">
-          <div><label>ID Salesforce</label><input type="text" id="ai_sf" placeholder="0001qertw23"></div>
-          <div><label>Duración</label><input type="text" id="ai_dur" placeholder="5m 22s"></div>
+          <div><label>ID Salesforce</label><input type="text" id="ai_sf" placeholder="salesforce_id"></div>
+          <div><label>Duración</label><input type="text" id="ai_dur" placeholder="CALL TIME"></div>
         </div>
       </div>
       <div class="card">
@@ -184,9 +193,17 @@ textarea{resize:vertical;line-height:1.5}
     <div id="panelSup" style="display:none">
       <div class="card">
         <div class="sh">Datos de la llamada <span class="sub">Supervisor</span></div>
+        <div class="five9-ref">
+          <strong>📋 Campos del reporte Five9:</strong>&nbsp;
+          Asesor → <strong>AGENT NAME</strong> &nbsp;·&nbsp;
+          Cliente → <strong>CUSTOMER NAME</strong> &nbsp;·&nbsp;
+          Teléfono → <strong>DNIS</strong> &nbsp;·&nbsp;
+          ID Salesforce → <strong>salesforce_id</strong> &nbsp;·&nbsp;
+          Duración → <strong>CALL TIME</strong>
+        </div>
         <div class="fr fr3">
           <div><label>Fecha</label><input type="date" id="s_fecha"></div>
-          <div><label>Asesor</label><input type="text" id="s_asesor" placeholder="Nombre completo"></div>
+          <div><label>Asesor</label><input type="text" id="s_asesor" placeholder="AGENT NAME"></div>
           <div><label>Tipo de gestión</label>
             <select id="s_tipo">
               <option value="">Seleccionar...</option>
@@ -196,12 +213,12 @@ textarea{resize:vertical;line-height:1.5}
           </div>
         </div>
         <div class="fr">
-          <div><label>Nombre del cliente</label><input type="text" id="s_cli" placeholder="Nombre completo"></div>
-          <div><label>Teléfono</label><input type="text" id="s_tel" placeholder="573..."></div>
+          <div><label>Nombre del cliente</label><input type="text" id="s_cli" placeholder="CUSTOMER NAME"></div>
+          <div><label>Teléfono</label><input type="text" id="s_tel" placeholder="DNIS"></div>
         </div>
         <div class="fr">
-          <div><label>ID Salesforce</label><input type="text" id="s_sf" placeholder="0001qertw23"></div>
-          <div><label>Duración</label><input type="text" id="s_dur" placeholder="5m 22s"></div>
+          <div><label>ID Salesforce</label><input type="text" id="s_sf" placeholder="salesforce_id"></div>
+          <div><label>Duración</label><input type="text" id="s_dur" placeholder="CALL TIME"></div>
         </div>
         <div class="fr1"><label>Link TurboScribe (referencia)</label><input type="text" id="s_lnk" placeholder="https://turboscribe.ai/..."></div>
       </div>
@@ -304,7 +321,6 @@ const SCRIPT_URL='https://script.google.com/macros/s/AKfycbzlO7FUuIeNqvTnqbImib3
 let mode='',parsedText='',aiData=null;
 let meta={telefono:'',idSF:'',asesor:'',fecha:'',cliente:'',tipo:'',duracion:'',link:''};
 let ev={};
-
 const CRIT={
   apertura:[{id:'ap1',n:'Saludo correcto: inmediato, empático, presenta nombre y compañía',p:5}],
   sondeo:[
@@ -340,10 +356,8 @@ const CRIT={
     {id:'he3',n:'Seguimiento: cumple acuerdos, tiempos de espera correctos, sin vacíos +20s',p:3}
   ]
 };
-
 function setProg(s){for(let i=1;i<=4;i++){const e=document.getElementById('ps'+i);e.className='ps'+(i<s?' done':i===s?' active':'');}}
 function showStep(n){document.querySelectorAll('.step').forEach(x=>x.classList.remove('active'));document.getElementById('step'+n).classList.add('active');setProg(n);window.scrollTo({top:0,behavior:'smooth'});}
-
 function selMode(m){
   mode=m;
   document.getElementById('modeAI').classList.toggle('sel',m==='ai');
@@ -351,11 +365,9 @@ function selMode(m){
   document.getElementById('panelAI').style.display=m==='ai'?'block':'none';
   document.getElementById('panelSup').style.display=m==='supervisor'?'block':'none';
 }
-
 function onDrag(e,on){e.preventDefault();document.getElementById('uz').classList.toggle('drag',on);}
 function onDrop(e){e.preventDefault();document.getElementById('uz').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)procFile(f);}
 function handleFile(e){const f=e.target.files[0];if(f)procFile(f);}
-
 function procFile(file){
   const uz=document.getElementById('uz');
   const fok=document.getElementById('fok');
@@ -368,11 +380,7 @@ function procFile(file){
       const lines=ev.target.result.split('\n').slice(1);
       const txt=lines.map(line=>{
         const matches=[];let inQ=false,cur='';
-        for(let ch of line){
-          if(ch==='"'){inQ=!inQ;}
-          else if(ch===','&&!inQ){matches.push(cur.trim());cur='';}
-          else{cur+=ch;}
-        }
+        for(let ch of line){if(ch==='"'){inQ=!inQ;}else if(ch===','&&!inQ){matches.push(cur.trim());cur='';}else{cur+=ch;}}
         matches.push(cur.trim());
         return(matches[2]||'').trim();
       }).filter(t=>t&&t.length>1).join(' ');
@@ -383,11 +391,7 @@ function procFile(file){
     r.readAsText(file,'UTF-8');
   }else if(ext==='txt'){
     const r=new FileReader();
-    r.onload=function(ev){
-      parsedText=ev.target.result;
-      fok.textContent='✓ '+file.name+' — '+parsedText.split(' ').length+' palabras';
-      uz.classList.add('done');
-    };
+    r.onload=function(ev){parsedText=ev.target.result;fok.textContent='✓ '+file.name+' — '+parsedText.split(' ').length+' palabras';uz.classList.add('done');};
     r.readAsText(file,'UTF-8');
   }else{
     fok.textContent='Procesando PDF...';
@@ -409,7 +413,6 @@ function procFile(file){
     r.readAsArrayBuffer(file);
   }
 }
-
 function animSteps(){
   const ids=['as1','as2','as3','as4'];let i=0;
   const iv=setInterval(()=>{
@@ -418,7 +421,6 @@ function animSteps(){
     else clearInterval(iv);
   },950);
 }
-
 async function startAI(){
   if(!document.getElementById('ai_asesor').value.trim()){alert('Ingresa el nombre del asesor');return;}
   if(!document.getElementById('tipoAI').value){alert('Selecciona el tipo de gestión');return;}
@@ -431,11 +433,9 @@ async function startAI(){
   meta.tipo=document.getElementById('tipoAI').value;
   meta.duracion=document.getElementById('ai_dur').value;
   meta.link='';
-  showStep(2);
-  animSteps();
+  showStep(2);animSteps();
   await runAI();
 }
-
 function startSup(){
   if(!document.getElementById('s_asesor').value.trim()){alert('Ingresa el nombre del asesor');return;}
   meta.asesor=document.getElementById('s_asesor').value.trim();
@@ -448,67 +448,18 @@ function startSup(){
   meta.link=document.getElementById('s_lnk').value;
   document.getElementById('fbBadge').className='sub';
   document.getElementById('fbBadge').textContent='Supervisor — completa el feedback';
-  renderCrits(false);
-  showStep(3);
+  renderCrits(false);showStep(3);
 }
-
-// ============================================================
-// runAI — usa JSONP (igual que doSave) para evitar CORS
-// ============================================================
 async function runAI(){
-  return new Promise(function(resolve){
-    const cbName='beemoAI_'+Date.now();
-
-    // Timeout de seguridad: 20 segundos
-    const timeout=setTimeout(function(){
-      if(window[cbName]){
-        delete window[cbName];
-        const el=document.getElementById('beemoAIScript');
-        if(el)el.remove();
-        console.warn('runAI: timeout — sin respuesta del servidor');
-        aiData=null;
-        resolve();
-      }
-    },20000);
-
-    // Función callback que Apps Script invocará
-    window[cbName]=function(d){
-      clearTimeout(timeout);
-      const el=document.getElementById('beemoAIScript');
-      if(el)el.remove();
-      delete window[cbName];
-      if(d&&d.success&&d.analysis){
-        aiData=d.analysis;
-        if(aiData.cliente_nombre)meta.cliente=aiData.cliente_nombre;
-      }else{
-        console.error('runAI error:',(d?d.error:'Sin datos'));
-        aiData=null;
-      }
-      resolve();
-    };
-
-    // Construir URL con callback
-    const url=SCRIPT_URL
-      +'?action=analyze'
-      +'&tipo='+encodeURIComponent(meta.tipo)
-      +'&transcripcion='+encodeURIComponent(parsedText.substring(0,7000))
-      +'&callback='+cbName;
-
-    // Inyectar <script> — esto evita el bloqueo CORS
-    const s=document.createElement('script');
-    s.id='beemoAIScript';
-    s.src=url;
-    s.onerror=function(){
-      clearTimeout(timeout);
-      delete window[cbName];
-      console.error('runAI: error cargando script JSONP');
-      aiData=null;
-      resolve();
-    };
-    document.head.appendChild(s);
-  });
+  try{
+    const url=SCRIPT_URL+'?action=analyze&tipo='+encodeURIComponent(meta.tipo)+'&transcripcion='+encodeURIComponent(parsedText.substring(0,7000));
+    const res=await fetch(url);
+    const d=await res.json();
+    if(d.success&&d.analysis){aiData=d.analysis;if(aiData.cliente_nombre)meta.cliente=aiData.cliente_nombre;}
+    else{console.error('AI error:',d.error);aiData=null;}
+  }catch(e){console.error('Fetch error:',e);aiData=null;}
+  renderCrits(true);showStep(3);
 }
-
 function buildBanner(id){
   document.getElementById(id).innerHTML=`
     <div><div class="ib-l">Asesor</div><div class="ib-v">${meta.asesor||'—'}</div></div>
@@ -516,24 +467,18 @@ function buildBanner(id){
     <div><div class="ib-l">Tel · ID SF</div><div class="ib-v">${meta.telefono||'—'} · ${meta.idSF||'—'}</div></div>
     <div><div class="ib-l">Fecha · Tipo</div><div class="ib-v">${meta.fecha||'—'} · ${meta.tipo||'—'}</div></div>`;
 }
-
 function renderCrits(withAI){
   buildBanner('ibn3');
   if(withAI&&!aiData){document.getElementById('aiWarn').style.display='block';}
   Object.entries(CRIT).forEach(([sec,items])=>{
-    const cont=document.getElementById('sec-'+sec);
-    cont.innerHTML='';
+    const cont=document.getElementById('sec-'+sec);cont.innerHTML='';
     items.forEach(item=>{
       const v=withAI&&aiData?(aiData[item.id]||'NA'):'NA';
       ev[item.id]=v;
-      const d=document.createElement('div');
-      d.className='ci';
+      const d=document.createElement('div');d.className='ci';
       const ab=withAI&&aiData?`<span class="aib" style="font-size:10px">IA: ${v}</span>`:'';
       d.innerHTML=`
-        <div class="cl">
-          <div class="cn">${item.n}</div>
-          <div class="cm">Peso: ${item.p}% ${ab}</div>
-        </div>
+        <div class="cl"><div class="cn">${item.n}</div><div class="cm">Peso: ${item.p}% ${ab}</div></div>
         <div class="cr">
           <span class="badge si ${v==='SI'?'active':''}" onclick="sel('${item.id}','SI',this)">Sí</span>
           <span class="badge no ${v==='NO'?'active':''}" onclick="sel('${item.id}','NO',this)">No</span>
@@ -551,24 +496,19 @@ function renderCrits(withAI){
     document.getElementById('alert').value=aiData.alertas||'';
   }
 }
-
 function sel(id,val,el){el.parentElement.querySelectorAll('.badge').forEach(b=>b.classList.remove('active'));el.classList.add('active');ev[id]=val;}
-
 function calcScore(){
   let e=0,m=0;
   Object.values(CRIT).flat().forEach(c=>{if(ev[c.id]!=='NA'){m+=c.p;}if(ev[c.id]==='SI'){e+=c.p;}});
   return m>0?Math.round((e/m)*100):0;
 }
-
 function getRes(s){
   if(s>=80)return{label:'Aprobado',bg:'#f0f9e8',color:'#3B6D11'};
   if(s>=60)return{label:'En riesgo',bg:'#fef7ec',color:'#854F0B'};
   return{label:'Crítico',bg:'#fef0f0',color:'#A32D2D'};
 }
-
 function goStep4(){
-  const score=calcScore();
-  const res=getRes(score);
+  const score=calcScore();const res=getRes(score);
   document.getElementById('scoreBig').textContent=score+'%';
   document.getElementById('scoreBig').style.color=res.color;
   const rb=document.getElementById('resBadge');
@@ -595,14 +535,12 @@ function goStep4(){
   document.getElementById('r-mul').textContent=document.getElementById('mulTxt').textContent;
   showStep(4);
 }
-
 function doSave(){
   const btn=document.getElementById('saveBtn');
   btn.disabled=true;btn.textContent='Guardando...';
   document.getElementById('saveStatus').textContent='Enviando a Google Sheets...';
   document.getElementById('saveErr').style.display='none';
-  const score=calcScore();
-  const res=getRes(score);
+  const score=calcScore();const res=getRes(score);
   const payload={
     fecha:meta.fecha,asesor:meta.asesor,cliente:meta.cliente,
     telefono:meta.telefono,idSF:meta.idSF,tipo:meta.tipo,
@@ -622,9 +560,7 @@ function doSave(){
   const url=SCRIPT_URL+'?action=save&b64='+encodeURIComponent(b64);
   const cbName='beemoCallback_'+Date.now();
   window[cbName]=function(d){
-    const el=document.getElementById('beemoScript');
-    if(el)el.remove();
-    delete window[cbName];
+    const el=document.getElementById('beemoScript');if(el)el.remove();delete window[cbName];
     if(d&&d.success){
       document.getElementById('saveStatus').style.display='none';
       document.getElementById('saveOK').style.display='block';
@@ -644,12 +580,9 @@ function doSave(){
       btn.disabled=false;btn.textContent='Reintentar';
     }
   },15000);
-  const s=document.createElement('script');
-  s.id='beemoScript';
-  s.src=url+'&callback='+cbName;
-  document.head.appendChild(s);
+  const s=document.createElement('script');s.id='beemoScript';
+  s.src=url+'&callback='+cbName;document.head.appendChild(s);
 }
-
 function reset(){
   mode='';parsedText='';aiData=null;ev={};
   meta={telefono:'',idSF:'',asesor:'',fecha:'',cliente:'',tipo:'',duracion:'',link:''};
