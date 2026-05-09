@@ -433,7 +433,8 @@ async function startAI(){
   meta.tipo=document.getElementById('tipoAI').value;
   meta.duracion=document.getElementById('ai_dur').value;
   meta.link='';
-  showStep(2);animSteps();
+  showStep(2);
+  animSteps();
   await runAI();
 }
 function startSup(){
@@ -450,39 +451,36 @@ function startSup(){
   document.getElementById('fbBadge').textContent='Supervisor — completa el feedback';
   renderCrits(false);showStep(3);
 }
-async function runAI(){
-  try{
-    // Enviamos por POST para evitar el límite de tamaño de URL.
-    // Esto permite analizar transcripciones mucho más largas que 1.000 palabras.
-    const res = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'analyze',
-        tipo: meta.tipo,
-        transcripcion: parsedText
-      })
-    });
-
-    const d = await res.json();
-
-    if(d.success && d.analysis){
-      aiData = d.analysis;
-      // Solo usa el nombre detectado por IA si el campo manual viene vacío.
-      // Así se respeta el dato ingresado desde Five9.
-      if(!meta.cliente && aiData.cliente_nombre) meta.cliente = aiData.cliente_nombre;
-    }else{
-      console.error('AI error:', d.error);
-      aiData = null;
-      alert('Error IA: ' + (d.error || 'No se pudo analizar la llamada'));
-    }
-  }catch(e){
-    console.error('Fetch error:', e);
-    aiData = null;
-    alert('Error de conexión con Apps Script. Revisa que el Web App esté implementado con la última versión.');
-  }
-
-  renderCrits(true);
-  showStep(3);
+function runAI(){
+  return new Promise(function(resolve){
+    const cbName='beemoAI_'+Date.now();
+    window[cbName]=function(d){
+      const el=document.getElementById('beemoAIScript');
+      if(el)el.remove();
+      delete window[cbName];
+      if(d&&d.success&&d.analysis){
+        aiData=d.analysis;
+        if(aiData.cliente_nombre)meta.cliente=aiData.cliente_nombre;
+      }else{
+        console.error('AI error:',d?d.error:'sin respuesta');
+        aiData=null;
+      }
+      renderCrits(true);
+      showStep(3);
+      resolve();
+    };
+    setTimeout(function(){
+      if(window[cbName]){
+        delete window[cbName];
+        const el=document.getElementById('beemoAIScript');if(el)el.remove();
+        aiData=null;renderCrits(true);showStep(3);resolve();
+      }
+    },45000);
+    const s=document.createElement('script');
+    s.id='beemoAIScript';
+    s.src=SCRIPT_URL+'?action=analyze&tipo='+encodeURIComponent(meta.tipo)+'&transcripcion='+encodeURIComponent(parsedText.substring(0,3000))+'&callback='+cbName;
+    document.head.appendChild(s);
+  });
 }
 function buildBanner(id){
   document.getElementById(id).innerHTML=`
@@ -623,6 +621,19 @@ function reset(){
   document.getElementById('saveErr').style.display='none';
   document.getElementById('saveStatus').style.display='block';
   document.getElementById('saveStatus').textContent='Listo para guardar esta evaluación.';
+  // Limpiar campos de texto del evaluador y feedback
+  ['mulObs','fort','mej','alert','obs'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.value='';
+  });
+  // Limpiar campos supervisor
+  ['s_asesor','s_fecha','s_cli','s_tel','s_sf','s_dur','s_lnk'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.value='';
+  });
+  document.getElementById('s_tipo') && (document.getElementById('s_tipo').value='');
+  document.getElementById('mulTxt').textContent='—';
+  document.getElementById('r-alw').style.display='none';
+  document.getElementById('fbBadge').className='aib';
+  document.getElementById('fbBadge').textContent='IA generó — puedes editar';
   const sb=document.getElementById('saveBtn');sb.disabled=false;sb.textContent='Guardar en Sheets';
   showStep(1);
 }
