@@ -170,6 +170,7 @@ textarea{resize:vertical;line-height:1.5}
           <div><label>ID Salesforce</label><input type="text" id="ai_sf" placeholder="salesforce_id"></div>
           <div><label>Duración</label><input type="text" id="ai_dur" placeholder="CALL TIME"></div>
         </div>
+        <div class="fr1"><label>Link TurboScribe (referencia)</label><input type="text" id="ai_lnk" placeholder="https://turboscribe.ai/... (opcional)"></div>
       </div>
       <div class="card">
         <div class="sh">Transcripción de TurboScribe <span class="aib">CSV · TXT · PDF</span></div>
@@ -432,9 +433,8 @@ async function startAI(){
   meta.cliente=document.getElementById('ai_cliente').value;
   meta.tipo=document.getElementById('tipoAI').value;
   meta.duracion=document.getElementById('ai_dur').value;
-  meta.link='';
-  showStep(2);
-  animSteps();
+  meta.link=document.getElementById('ai_lnk').value || '';
+  showStep(2);animSteps();
   await runAI();
 }
 function startSup(){
@@ -451,36 +451,38 @@ function startSup(){
   document.getElementById('fbBadge').textContent='Supervisor — completa el feedback';
   renderCrits(false);showStep(3);
 }
-function runAI(){
-  return new Promise(function(resolve){
-    const cbName='beemoAI_'+Date.now();
-    window[cbName]=function(d){
-      const el=document.getElementById('beemoAIScript');
-      if(el)el.remove();
-      delete window[cbName];
-      if(d&&d.success&&d.analysis){
-        aiData=d.analysis;
-        if(aiData.cliente_nombre)meta.cliente=aiData.cliente_nombre;
-      }else{
-        console.error('AI error:',d?d.error:'sin respuesta');
-        aiData=null;
-      }
-      renderCrits(true);
-      showStep(3);
-      resolve();
-    };
-    setTimeout(function(){
-      if(window[cbName]){
-        delete window[cbName];
-        const el=document.getElementById('beemoAIScript');if(el)el.remove();
-        aiData=null;renderCrits(true);showStep(3);resolve();
-      }
-    },45000);
-    const s=document.createElement('script');
-    s.id='beemoAIScript';
-    s.src=SCRIPT_URL+'?action=analyze&tipo='+encodeURIComponent(meta.tipo)+'&transcripcion='+encodeURIComponent(parsedText.substring(0,3000))+'&callback='+cbName;
-    document.head.appendChild(s);
-  });
+async function runAI(){
+  try{
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'analyze',
+        tipo: meta.tipo,
+        transcripcion: parsedText
+      })
+    });
+
+    const d = await res.json();
+
+    if(d.success && d.analysis){
+      aiData = d.analysis;
+      // Si el campo cliente fue ingresado manualmente, se respeta.
+      // Si viene vacío, se completa con lo detectado por la IA.
+      if(!meta.cliente && aiData.cliente_nombre) meta.cliente = aiData.cliente_nombre;
+    }else{
+      console.error('AI error:', d.error);
+      aiData = null;
+      alert('Error IA: ' + (d.error || 'No se pudo analizar'));
+    }
+
+  }catch(e){
+    console.error('Fetch error:', e);
+    aiData = null;
+    alert('Error de conexión con Apps Script');
+  }
+
+  renderCrits(true);
+  showStep(3);
 }
 function buildBanner(id){
   document.getElementById(id).innerHTML=`
@@ -606,37 +608,81 @@ function doSave(){
   s.src=url+'&callback='+cbName;document.head.appendChild(s);
 }
 function reset(){
-  mode='';parsedText='';aiData=null;ev={};
+  mode='';
+  parsedText='';
+  aiData=null;
+  ev={};
   meta={telefono:'',idSF:'',asesor:'',fecha:'',cliente:'',tipo:'',duracion:'',link:''};
+
+  // Quitar selección de modo y ocultar paneles
   ['modeAI','modeSup'].forEach(id=>document.getElementById(id).classList.remove('sel'));
   ['panelAI','panelSup'].forEach(id=>document.getElementById(id).style.display='none');
+
+  // Limpiar archivo cargado
   document.getElementById('uz').classList.remove('done');
+  document.getElementById('uz').classList.remove('drag');
   document.getElementById('fok').textContent='';
   document.getElementById('fi').value='';
-  document.getElementById('tipoAI').value='';
-  ['ai_asesor','ai_fecha','ai_tel','ai_sf','ai_cliente','ai_dur'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+
+  // Limpiar campos manuales IA y Supervisor
+  [
+    'ai_asesor','ai_fecha','ai_tel','ai_sf','ai_cliente','ai_dur','ai_lnk','tipoAI',
+    's_asesor','s_fecha','s_tel','s_sf','s_cli','s_dur','s_lnk','s_tipo'
+  ].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.value='';
+  });
+
+  // Limpiar cajas de texto de evaluación
+  [
+    'mulObs','fort','mej','alert','obs'
+  ].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.value='';
+  });
+
+  // Limpiar textos renderizados
+  document.getElementById('mulTxt').textContent='—';
+  document.getElementById('r-fort').textContent='';
+  document.getElementById('r-mej').textContent='';
+  document.getElementById('r-mul').textContent='';
+  document.getElementById('r-al').textContent='';
+  document.getElementById('r-alw').style.display='none';
+
+  // Limpiar banners, criterios y warnings
+  ['ibn3','ibn4','resGrid'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.innerHTML='';
+  });
+  ['sec-apertura','sec-sondeo','sec-negociacion','sec-adelanto','sec-persuasion','sec-cierre','sec-emocional','sec-herramientas'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.innerHTML='';
+  });
   document.getElementById('cwarn').classList.remove('show');
   document.getElementById('aiWarn').style.display='none';
-  document.getElementById('saveOK').style.display='none';
-  document.getElementById('saveErr').style.display='none';
-  document.getElementById('saveStatus').style.display='block';
-  document.getElementById('saveStatus').textContent='Listo para guardar esta evaluación.';
-  // Limpiar campos de texto del evaluador y feedback
-  ['mulObs','fort','mej','alert','obs'].forEach(function(id){
-    var el=document.getElementById(id);if(el)el.value='';
-  });
-  // Limpiar campos supervisor
-  ['s_asesor','s_fecha','s_cli','s_tel','s_sf','s_dur','s_lnk'].forEach(function(id){
-    var el=document.getElementById(id);if(el)el.value='';
-  });
-  document.getElementById('s_tipo') && (document.getElementById('s_tipo').value='');
-  document.getElementById('mulTxt').textContent='—';
-  document.getElementById('r-alw').style.display='none';
+
+  // Restaurar feedback badge
   document.getElementById('fbBadge').className='aib';
   document.getElementById('fbBadge').textContent='IA generó — puedes editar';
-  const sb=document.getElementById('saveBtn');sb.disabled=false;sb.textContent='Guardar en Sheets';
+
+  // Restaurar resultado
+  document.getElementById('scoreBig').textContent='—';
+  document.getElementById('resBadge').textContent='—';
+
+  // Restaurar estado de guardado
+  document.getElementById('saveOK').style.display='none';
+  document.getElementById('saveErr').style.display='none';
+  document.getElementById('saveErr').textContent='';
+  document.getElementById('saveStatus').style.display='block';
+  document.getElementById('saveStatus').textContent='Listo para guardar esta evaluación.';
+
+  const sb=document.getElementById('saveBtn');
+  sb.disabled=false;
+  sb.textContent='Guardar en Sheets';
+
   showStep(1);
 }
+
 </script>
 </body>
 </html>
